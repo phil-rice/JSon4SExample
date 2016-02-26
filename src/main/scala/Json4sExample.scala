@@ -1,5 +1,17 @@
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+
+import org.json4s.JsonAST.JString
+import org.json4s._
 import org.json4s.native.Serialization
 
+protected val dateTimeFormat = DateTimeFormatter.ISO_DATE_TIME
+
+implicit object dateTimeSerializer extends CustomSerializer[OffsetDateTime](formats => ( {
+  case JString(s) => OffsetDateTime.parse(s, dateTimeFormat)
+}, {
+  case d: OffsetDateTime => JString(dateTimeFormat.format(d))
+}))
 
 case class Image(height: Int, width: Int, caption: Option[String])
 
