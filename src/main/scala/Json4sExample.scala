@@ -1,6 +1,3 @@
-import org.json4s.Extraction._
-import org.json4s._
-import org.json4s.JsonAST.JValue
 import org.json4s.native.Serialization
 
 
@@ -19,8 +16,8 @@ case class Index(
 
 object Index {
 
-  import org.json4s._
   import org.json4s.JsonDSL._
+  import org.json4s._
   import Extraction._
 
   implicit val formats = DefaultFormats + PhotoGalleryImageSerializer + IndexSerializer
@@ -41,8 +38,9 @@ object Index {
   object PhotoGalleryImageSerializer extends CustomSerializer[PhotoGalleryImage](ser =
     implicit formats =>
       ( {
-        case (jv: JValue) => val image = jv.extract[Image]
-          val thumbnail = (jv \\ "thumbnail").extract[Image]
+        case (jv: JValue) =>
+          val image = jv.extract[Image]
+          val thumbnail = (jv \ "thumbnailImage").extract[Image]
           PhotoGalleryImage(image, thumbnail)
       }, {
         case p: PhotoGalleryImage =>
