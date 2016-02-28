@@ -6,8 +6,8 @@ import org.json4s.JsonAST.JString
 import org.json4s._
 import org.json4s.native.Serialization
 
-object Json4Adapter {
-  val dateTimeFormat = DateTimeFormatter.ISO_DATE_TIME
+object Json4Adapter extends Json4Adapter {
+ protected val dateTimeFormat = DateTimeFormatter.ISO_DATE_TIME
 
   implicit def offsetDateTimeToJObject(o: OffsetDateTime) = new JString(dateTimeFormat.format(o))
 
@@ -26,20 +26,21 @@ object Json4Adapter {
     }
   }
 
-  val formats = DefaultFormats + DateTimeSerializer
+  val serializers = List(DateTimeSerializer)
 
+  def formats(x: Json4Adapter*) = (x :+ this).flatMap(_.serializers).foldLeft(DefaultFormats: Formats)((acc, cs) => acc + cs)
 }
 
-trait Json4Adapter[X] {
-  def serializer: CustomSerializer[X]
-}
 
+trait Json4Adapter {
+  def serializers: List[CustomSerializer[_]]
+}
 
 case class Image(height: Int, width: Int, caption: Option[String])
 
 case class PhotoGalleryImage(mainImage: Image, thumbnail: Image)
 
-object PhotoGalleryImage {
+object PhotoGalleryImage extends Json4Adapter {
 
   import Json4Adapter._
 
@@ -56,11 +57,11 @@ object PhotoGalleryImage {
       })) {
   }
 
-  val formats = Json4Adapter.formats + PhotoGalleryImageCustomerSerializer
+  val serializers = List(PhotoGalleryImageCustomerSerializer)
 
 }
 
-object Index {
+object Index extends Json4Adapter {
 
   import JsonDSL._
 
@@ -85,11 +86,11 @@ object Index {
           ("offsetDateTime" -> i.offsetDateTime) ~
           ("media" -> (
             ("bodyimages" -> Extraction.decompose(i.bodyImages)) ~
-              ("thumbnails" -> Extraction.decompose(i.thumbnailImages.zipWithIndex.map{case (image, i) => (i.toString, image)}.toMap)) ~
+              ("thumbnails" -> Extraction.decompose(i.thumbnailImages.zipWithIndex.map { case (image, i) => (i.toString, image) }.toMap)) ~
               ("photogallery" -> Extraction.decompose(i.photoGallery))))
     }))
 
-  val formats = PhotoGalleryImage.formats + IndexSerializer
+  val serializers = List(IndexSerializer)
 
 }
 
@@ -108,7 +109,7 @@ object Doit {
 
   def main(args: Array[String]) {
     import org.json4s.native.JsonMethods._
-    implicit val formats = Index.formats
+    implicit val formats = Json4Adapter.formats(PhotoGalleryImage, Index)
 
     val pg = PhotoGalleryImage(Image(10, 20, Some("main")), Image(30, 40, Some("thumbnail")))
     val image1 = Image(10, 20, Some("one"))
